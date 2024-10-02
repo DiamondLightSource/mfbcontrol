@@ -1,0 +1,18 @@
+# Changes here will be overwritten by Copier
+_commit: 2.3.0
+_src_path: gh:DiamondLightSource/python-copier-template
+author_email: ''
+author_name: ''
+component_lifecycle: experimental
+component_owner: ''
+component_type: library
+description: Python soft IOC to run Modulation Feedback control loop using a PandABox
+distribution_name: mfbcontrol
+docker: false
+docs_type: README
+git_platform: github.com
+github_org: DiamondLightSource
+package_name: mfbcontrol
+pypi: false
+repo_name: mfbcontrol
+type_checker: pyright

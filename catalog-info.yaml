@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: mfbcontrol
+  title: mfbcontrol
+  description: Python soft IOC to run Modulation Feedback control loop using a PandABox
+spec:
+  type: library
+  lifecycle: experimental
+  owner: 
