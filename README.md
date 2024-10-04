@@ -5,27 +5,33 @@
 
 # mfbcontrol
 
-Python soft IOC to run Modulation Feedback control loop using a PandABox
+Python soft IOC to run the Modulation Feedback control loop using a PandABox.
 
-This is where you should write a short paragraph that describes what your module does,
-how it does it, and why people should use it.
+The MFB control loop takes BPM positions as input and drives a piezo motor to
+achieve the position of maximum beam intensity.
+
+A PandABox with a FMC ACQ427ELF is dedicated to this purpose, if the target
+PandABox is shared, make sure the blocks CLOCK1, PCAP, COUNTER1, PGEN1, CALC1
+and FMC\_OUT are not affected and fully owned by this application.
+
+The BPM channels A, B, C and D should be connected to channel 1, 2, 3 and 4 of
+the FMC ADC.
+
+The FMC DAC channel 1 should be connected to the target piezo motor amplifier.
 
 Source          | <https://github.com/DiamondLightSource/mfbcontrol>
 :---:           | :---:
 Releases        | <https://github.com/DiamondLightSource/mfbcontrol/releases>
 
-This is where you should put some images or code snippets that illustrate
-some relevant examples. If it is a library then you might put some
-introductory code here:
+# Quickstart
 
-```python
-from mfbcontrol import __version__
-
-print(f"Hello mfbcontrol {__version__}")
-```
-
-Or if it is a commandline tool then you might put some example commands here:
+The following command starts an IOC in which the initial gain is -0.3, the
+threshold of the beam intensity to start controlling is 0.5 and the modulation
+signal generated is a cosine wave with frequency 121Hz and amplitude 0.07V.
 
 ```
-python -m mfbcontrol --version
+mfbcontrol-ioc PV-PREFIX panda-host --gain -0.3 --min-sig 0.5 --mod-freq 121 --mod-amp 0.07
 ```
+
+Note: depending on the total latency of the system, the sign of the gain might
+need to be changed so that the correction happens in the right direction.
