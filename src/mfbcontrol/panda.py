@@ -29,6 +29,7 @@ class MFBPandaManager(object):
         self.client = client
         self.dac_value = 0
         self.log = logging.getLogger(__name__)
+        self.mod_enabled = False
 
     async def __aenter__(self):
         await self.connect()
@@ -47,8 +48,12 @@ class MFBPandaManager(object):
         await self.set_modulation_wave(mod_wave)
         await self.set_trigger_period(1 / samp_freq)
         await self.load_state(str(Path(__file__).parent / 'panda_mfb.sav'))
+        self.mod_enabled = True
         await self.arm_if_needed()
         self.dac_value = await self.get_dac_raw_value()
+
+    def is_modulation_enabled(self):
+        return self.mod_enabled
 
     async def get_dac_raw_value(self):
         return int(await self.client.send(Get('COUNTER1.OUT')))
@@ -79,6 +84,7 @@ class MFBPandaManager(object):
                 [str(int(np.round(to_dac_units(i)))) for i in wave]))
 
     async def set_modulation_enable(self, enable: bool):
+        self.mod_enabled = enable
         await self.client.send(
             Put('PGEN1.ENABLE', 'PCAP.ACTIVE' if enable else 'ZERO'))
 

@@ -49,12 +49,11 @@ def main():
     t_control = 1 / args.control_freq
     n_samples = round(args.samp_freq / args.control_freq)
     gain_pv = builder.aOut('GAIN', initial_value=gain)
-    enable_pv = builder.boolOut('ENABLE', initial_value=True)
 
     async def mod_enable_pv_update(value):
         await panda_manager.set_modulation_enable(+value)
 
-    builder.boolOut('MOD:ENABLE', initial_value=True,
+    builder.boolOut('ENABLE', initial_value=True,
                     on_update=mod_enable_pv_update)
 
     async def dac_set_pv_update(value):
@@ -77,8 +76,8 @@ def main():
             bpm_inten_pv.set(correction.bpm_fft_amp[0])
             bpm_fft_amp_pv.set(correction.bpm_fft_amp)
             mod_fft_amp_pv.set(correction.mod_fft_amp)
-            if not enable_pv.get():
-                log.debug('Correction is disabled')
+            if not panda_manager.is_modulation_enabled():
+                log.debug('Control loop is disabled')
                 continue
 
             if correction.bpm_fft_amp[0] < min_sig:
