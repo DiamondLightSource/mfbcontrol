@@ -60,6 +60,7 @@ def main():
         await panda_manager.set_dac_value(value)
 
     builder.aOut('DAC:SET', on_update=dac_set_pv_update)
+    dac_set_rbv = builder.aIn('DAC:SET_RBV')
     bpm_inten_pv = builder.aOut('BPM:INTEN')
     bpm_fft_amp_pv = builder.WaveformIn('BPM:FFT:AMP', length=n_samples)
     mod_fft_amp_pv = builder.WaveformIn('MOD:FFT:AMP', length=n_samples)
@@ -85,6 +86,8 @@ def main():
                 log.debug('Signal = %f, correction = %f',
                           correction.bpm_fft_amp[0], correction.value)
                 await panda_manager.adjust_dac(correction.value)
+
+            dac_set_rbv.set(await panda_manager.get_dac_value())
 
         await panda_manager.close()
 

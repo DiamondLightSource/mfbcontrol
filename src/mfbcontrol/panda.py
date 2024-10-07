@@ -18,7 +18,7 @@ def to_dac_units(val: float) -> float:
     return np.round(val * DAC_MAX / EGU_MAX, 0)
 
 
-def from_dac_units(val: float) -> float:
+def from_dac_units(val: int) -> float:
     return val * EGU_MAX / DAC_MAX
 
 
@@ -58,6 +58,9 @@ class MFBPandaManager(object):
     async def get_dac_raw_value(self):
         return int(await self.client.send(Get('COUNTER1.OUT')))
 
+    async def get_dac_value(self):
+        return from_dac_units(await self.get_dac_raw_value())
+
     async def set_dac_value(self, value):
         cval = int(to_dac_units(value))
         self.dac_value = cval
@@ -96,9 +99,7 @@ class MFBPandaManager(object):
             await self.client.send(Arm())
 
     async def load_state(self, filepath: str):
-        with open(filepath, 'r') as f:
-            state = f.read().split()
-
+        state = open(filepath, 'r').read().splitlines()
         await self.client.send(SetState(state))
 
     async def collect_mfb_signals(self, n_samples: int):
