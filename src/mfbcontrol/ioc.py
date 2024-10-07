@@ -91,7 +91,16 @@ def main():
 
         await panda_manager.close()
 
-    dispatcher(control_loop)
+    async def control_loop_wrapper():
+        while True:
+            try:
+                await control_loop()
+            except Exception as e:
+                log.exception('Unhandled exception in the control loop: '
+                              '%s, retrying soon...', e)
+                await asyncio.sleep(4)
+
+    dispatcher(control_loop_wrapper)
     builder.LoadDatabase()
     softioc.iocInit(dispatcher)
     softioc.interactive_ioc(globals())
