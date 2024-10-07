@@ -33,5 +33,38 @@ signal generated is a cosine wave with frequency 121Hz and amplitude 0.07V.
 mfbcontrol-ioc PV-PREFIX panda-host --gain -0.3 --min-sig 0.5 --mod-freq 121 --mod-amp 0.07
 ```
 
-Note: depending on the total latency of the system, the sign of the gain might
-need to be changed so that the correction happens in the right direction.
+# PVs provided
+
+## `PV-PREFIX:ENABLE`
+
+Enable/disable for the control loop.
+
+## `PV-PREFIX:GAIN`
+
+Gain in the control loop, note that depending on the total latency of the
+system, the sign of the gain might need to be changed so that the correction
+happens in the right direction.
+
+## `PV-PREFIX:MINSIG`
+
+Minimum BPM intensity signal average level so that the control loop kicks in.
+
+## `PV-PREFIX:BPM:INTEN`
+
+Current BPM intensity signal average level.
+
+## `PV-PREFIX:BPM:FFT:AMP`
+
+Waveform containing the amplitude of the FFT of the BPM intensity.
+
+## `PV-PREFIX:MOD:FFT:AMP`
+
+Waveform containing the amplitude of the FFT of the modulation signal generated.
+
+## `PV-PREFIX:DAC:SET`
+
+Manual control for the DAC output (in V units).
+
+## `PV-PREFIX:DAC:SET_RBV`
+
+Readback PV for the DAC output (in V units).
