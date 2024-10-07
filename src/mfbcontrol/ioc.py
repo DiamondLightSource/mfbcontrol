@@ -45,10 +45,10 @@ def main():
     builder.SetDeviceName(args.pv_prefix)
     panda_manager = MFBPandaManager(args.panda_host)
     gain = args.control_gain
-    min_sig = args.min_sig
     t_control = 1 / args.control_freq
     n_samples = round(args.samp_freq / args.control_freq)
     gain_pv = builder.aOut('GAIN', initial_value=gain)
+    min_sig_pv = builder.aOut('BPM:MINSIG', initial_value=args.min_sig)
 
     async def mod_enable_pv_update(value):
         await panda_manager.set_modulation_enable(+value)
@@ -78,11 +78,9 @@ def main():
             mod_fft_amp_pv.set(correction.mod_fft_amp)
             if not panda_manager.is_modulation_enabled():
                 log.debug('Control loop is disabled')
-                continue
-
-            if correction.bpm_fft_amp[0] < min_sig:
+            elif correction.bpm_fft_amp[0] < min_sig_pv.get():
                 log.debug('Signal below threshold: %f < %f',
-                          correction.bpm_fft_amp[0], min_sig)
+                          correction.bpm_fft_amp[0], min_sig_pv.get())
             else:
                 log.debug('Signal = %f, correction = %f',
                           correction.bpm_fft_amp[0], correction.value)
