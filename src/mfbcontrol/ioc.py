@@ -61,8 +61,8 @@ def main():
 
     builder.aOut('DAC:SET', on_update=dac_set_pv_update)
     bpm_inten_pv = builder.aOut('BPM:INTEN')
-    bpm_fft_amp_pv = builder.WaveformIn('FFT:BPM:AMP', length=n_samples)
-    mod_fft_amp_pv = builder.WaveformIn('FFT:MOD:AMP', length=n_samples)
+    bpm_fft_amp_pv = builder.WaveformIn('BPM:FFT:AMP', length=n_samples)
+    mod_fft_amp_pv = builder.WaveformIn('MOD:FFT:AMP', length=n_samples)
 
     async def control_loop():
         await panda_manager.connect()
