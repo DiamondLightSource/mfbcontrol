@@ -64,6 +64,11 @@ class MFBPandaManager(object):
     async def set_dac_value(self, value):
         cval = int(to_dac_units(value))
         self.dac_value = cval
+        if self.dac_value > DAC_MAX:
+            self.dac_value = DAC_MAX
+        elif self.dac_value < DAC_MIN:
+            self.dac_value = DAC_MIN
+
         await self.client.send(Put('COUNTER1.SET', cval))
 
     async def adjust_dac(self, diff: float):
