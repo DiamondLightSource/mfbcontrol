@@ -54,16 +54,18 @@ def main():
         await panda_manager.set_modulation_enable(+value)
 
     builder.boolOut('ENABLE', initial_value=True,
-                    on_update=mod_enable_pv_update)
+                    on_update=mod_enable_pv_update, ZNAM='OFF', ONAM='ON')
 
     async def dac_set_pv_update(value):
         await panda_manager.set_dac_value(value)
 
     builder.aOut('DAC:SET', on_update=dac_set_pv_update)
     dac_set_rbv = builder.aIn('DAC:SET_RBV')
-    bpm_inten_pv = builder.aOut('BPM:INTEN')
+    bpm_inten_pv = builder.aOut('BPM:INTEN', PREC=3)
     bpm_fft_amp_pv = builder.WaveformIn('BPM:FFT:AMP', length=n_samples)
     mod_fft_amp_pv = builder.WaveformIn('MOD:FFT:AMP', length=n_samples)
+    bpm_amp_pv = builder.WaveformIn('BPM:AMP', length=n_samples)
+    mod_amp_pv = builder.WaveformIn('MOD:AMP', length=n_samples)
 
     async def control_loop():
         await panda_manager.connect()
@@ -72,19 +74,22 @@ def main():
         await panda_manager.configure(mod_signal, args.samp_freq)
         async for bpm_data, mod_data in \
                 panda_manager.collect_mfb_signals(n_samples):
+            bpm_amp_pv.set(bpm_data)
+            mod_amp_pv.set(mod_data)
             correction = calculate_correction(bpm_data, mod_data,
                                               gain_pv.get())
-            bpm_inten_pv.set(correction.bpm_fft_amp[0])
+            bpm_inten = correction.bpm_fft_amp[0] / 2
+            bpm_inten_pv.set(bpm_inten)
             bpm_fft_amp_pv.set(correction.bpm_fft_amp)
             mod_fft_amp_pv.set(correction.mod_fft_amp)
             if not panda_manager.is_modulation_enabled():
                 log.debug('Control loop is disabled')
             elif correction.bpm_fft_amp[0] < min_sig_pv.get():
-                log.debug('Signal below threshold: %f < %f',
-                          correction.bpm_fft_amp[0], min_sig_pv.get())
+                log.debug('Signal below threshold: %f < %f', bpm_inten,
+                          min_sig_pv.get())
             else:
-                log.debug('Signal = %f, correction = %f',
-                          correction.bpm_fft_amp[0], correction.value)
+                log.debug('Signal = %f, correction = %f', bpm_inten,
+                          correction.value)
                 await panda_manager.adjust_dac(correction.value)
 
             dac_set_rbv.set(await panda_manager.get_dac_value())
