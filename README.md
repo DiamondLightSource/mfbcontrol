@@ -30,7 +30,7 @@ threshold of the beam intensity to start controlling is 0.5 and the modulation
 signal generated is a cosine wave with frequency 121Hz and amplitude 0.07V.
 
 ```
-mfbcontrol-ioc PV-PREFIX panda-host --gain -0.3 --min-sig 0.5 --mod-freq 121 --mod-amp 0.07
+mfbcontrol-ioc PV-PREFIX panda-host --control-gain -0.3 --min-sig 0.5 --mod-freq 121 --mod-amp 0.07
 ```
 
 # PVs provided
@@ -53,9 +53,17 @@ Minimum BPM intensity signal average level so that the control loop kicks in.
 
 Current BPM intensity signal average level.
 
+## `PV-PREFIX:BPM:AMP`
+
+BPM intensity (A+B+C+D) waveform.
+
 ## `PV-PREFIX:BPM:FFT:AMP`
 
 Waveform containing the amplitude of the FFT of the BPM intensity.
+
+## `PV-PREFIX:MOD:AMP`
+
+Modulation signal waveform.
 
 ## `PV-PREFIX:MOD:FFT:AMP`
 
