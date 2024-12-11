@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import logging
+import numpy as np
 
 from mfbcontrol.mfb import create_modulation_signal, calculate_correction
 from mfbcontrol.panda import MFBPandaManager
@@ -62,6 +63,11 @@ def main():
     builder.aOut('DAC:SET', on_update=dac_set_pv_update)
     dac_set_rbv = builder.aIn('DAC:SET_RBV')
     bpm_inten_pv = builder.aOut('BPM:INTEN', PREC=3)
+    a_sig_pv = builder.aIn('BPM:A', PREC=3)
+    b_sig_pv = builder.aIn('BPM:B', PREC=3)
+    c_sig_pv = builder.aIn('BPM:C', PREC=3)
+    d_sig_pv = builder.aIn('BPM:D', PREC=3)
+    sig_pvs = [a_sig_pv, b_sig_pv, c_sig_pv, d_sig_pv]
     bpm_fft_amp_pv = builder.WaveformIn('BPM:FFT:AMP', length=n_samples)
     mod_fft_amp_pv = builder.WaveformIn('MOD:FFT:AMP', length=n_samples)
     bpm_amp_pv = builder.WaveformIn('BPM:AMP', length=n_samples)
@@ -72,8 +78,13 @@ def main():
         mod_signal = create_modulation_signal(
             args.mod_freq, args.mod_amp, args.samp_freq, t_control)
         await panda_manager.configure(mod_signal, args.samp_freq)
-        async for bpm_data, mod_data in \
+        async for each_bpm_data, mod_data in \
                 panda_manager.collect_mfb_signals(n_samples):
+
+            bpm_data = np.sum(each_bpm_data, axis=0)
+            for i in range(len(each_bpm_data)):
+                sig_pvs[i].set(each_bpm_data[i].sum() / len(each_bpm_data[i]))
+
             bpm_amp_pv.set(bpm_data)
             mod_amp_pv.set(mod_data)
             correction = calculate_correction(bpm_data, mod_data,

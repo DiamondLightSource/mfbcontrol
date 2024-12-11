@@ -108,7 +108,7 @@ class MFBPandaManager(object):
         await self.client.send(SetState(state))
 
     async def collect_mfb_signals(self, n_samples: int):
-        bpm_data = np.zeros((n_samples,))
+        bpm_data = np.zeros((4, n_samples))
         mod_data = np.zeros((n_samples,))
         line_number = 0
         async for data in self.client.data():
@@ -116,8 +116,9 @@ class MFBPandaManager(object):
                 line_number = 0
             elif isinstance(data, FrameData):
                 for line in data.data:
-                    bpm_data[line_number] = \
-                        line[1] + line[2] + line[3] + line[4]
+                    for i in range(4):
+                        bpm_data[i][line_number] = line[i + 1]
+
                     mod_data[line_number] = from_dac_units(line[0])
                     line_number += 1
                     if line_number >= n_samples:
