@@ -5,7 +5,7 @@ import asyncio
 import logging
 import numpy as np
 
-from mfbcontrol.mfb import create_modulation_signal, calculate_correction
+from mfbcontrol.mfb import create_modulation_signal, MfbCalculator
 from mfbcontrol.panda import MFBPandaManager
 from mfbcontrol import __version__
 
@@ -25,10 +25,14 @@ def parse_args() -> argparse.Namespace:
                         help='Sampling frequency')
     parser.add_argument('--control-freq', type=int, default=1,
                         help='Control loop frequency')
-    parser.add_argument('--control-gain', type=float, default=-0.3,
-                        help='Gain applied to correction')
+    parser.add_argument('--control-gain-p', type=float, default=-0.3,
+                        help='P Gain applied to correction')
+    parser.add_argument('--control-gain-i', type=float, default=0,
+                        help='I Gain applied to correction')
     parser.add_argument('--min-sig', type=float, default=0.5,
                         help='Minimum signal level to apply correction')
+    parser.add_argument('--max-integral', type=float,
+                        help='Maximum accumulated integral')
     parser.add_argument('--log-level',
                         choices=['debug', 'warn', 'info', 'critical'],
                         default='info', help='Logging level')
@@ -45,11 +49,16 @@ def main():
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
     builder.SetDeviceName(args.pv_prefix)
     panda_manager = MFBPandaManager(args.panda_host)
-    gain = args.control_gain
+    gain_p = args.control_gain_p
+    gain_i = args.control_gain_i
     t_control = 1 / args.control_freq
     n_samples = round(args.samp_freq / args.control_freq)
-    gain_pv = builder.aOut('GAIN', initial_value=gain)
+    gain_p_pv = builder.aOut('GAIN_P', initial_value=gain_p)
+    gain_i_pv = builder.aOut('GAIN_I', initial_value=gain_i)
     min_sig_pv = builder.aOut('BPM:MINSIG', initial_value=args.min_sig)
+    max_integral = args.max_integral
+
+    mfb_calc = MfbCalculator(t_control, max_integral)
 
     async def mod_enable_pv_update(value):
         await panda_manager.set_modulation_enable(+value)
@@ -87,18 +96,21 @@ def main():
 
             bpm_amp_pv.set(bpm_data)
             mod_amp_pv.set(mod_data)
-            correction = calculate_correction(bpm_data, mod_data,
-                                              gain_pv.get())
-            bpm_inten = correction.bpm_fft_amp[0] / 2
+
+            mfb_calc.process_inputs(bpm_data, mod_data)
+
+            bpm_inten = mfb_calc.get_bpm_amp()[0] / 2
             bpm_inten_pv.set(bpm_inten)
-            bpm_fft_amp_pv.set(correction.bpm_fft_amp)
-            mod_fft_amp_pv.set(correction.mod_fft_amp)
+            bpm_fft_amp_pv.set(mfb_calc.get_bpm_amp())
+            mod_fft_amp_pv.set(mfb_calc.get_mod_amp())
+
             if not panda_manager.is_modulation_enabled():
                 log.debug('Control loop is disabled')
-            elif correction.bpm_fft_amp[0] < min_sig_pv.get():
+            elif mfb_calc.get_bpm_amp()[0] < min_sig_pv.get():
                 log.debug('Signal below threshold: %f < %f', bpm_inten,
                           min_sig_pv.get())
             else:
+                correction = mfb_calc.calculate_correction(gain_p_pv.get(), gain_i_pv.get())
                 log.debug('Signal = %f, correction = %f', bpm_inten,
                           correction.value)
                 await panda_manager.adjust_dac(correction.value)
