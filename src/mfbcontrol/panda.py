@@ -1,5 +1,4 @@
 import logging
-from sys import deactivate_stack_trampoline
 import numpy as np
 
 from pathlib import Path
