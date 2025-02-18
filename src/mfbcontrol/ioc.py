@@ -40,6 +40,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main():
+    INITIAL_DAC_TWEAK_STEP = 0.1
+
     args = parse_args()
     # Importing it here to reduce time to showing the version and to avoid
     # INFO message comming from PVXS
@@ -53,11 +55,31 @@ def main():
     gain_i = args.control_gain_i
     t_control = 1 / args.control_freq
     n_samples = round(args.samp_freq / args.control_freq)
+    max_integral = args.max_integral
+    mfb_freq_pv = None
+    mfb_amp_pv = None
+
+    async def configure_modulation_signal(freq, amp):
+        mod_signal = create_modulation_signal(
+            freq, amp, args.samp_freq)
+        await panda_manager.configure(mod_signal, args.samp_freq)
+
+    async def set_modulation_freq(freq):
+        await configure_modulation_signal(freq, mfb_amp_pv.get())
+        log.debug(f'Modulation frequency set to {freq}Hz')
+
+    async def set_modulation_amp(amp):
+        await configure_modulation_signal(mfb_freq_pv.get(), amp)
+        log.debug(f'Modulation amplitude set to {amp}V')
+
+    mfb_freq_pv = builder.aOut('FREQ', initial_value=args.mod_freq, PREC=0, EGU="Hz",
+                                on_update=set_modulation_freq)
+    mfb_amp_pv = builder.aOut('AMP', initial_value=args.mod_amp, PREC=3, EGU="V",
+                                on_update=set_modulation_amp)
     gain_p_pv = builder.aOut('GAIN_P', initial_value=gain_p)
     gain_i_pv = builder.aOut('GAIN_I', initial_value=gain_i)
     min_sig_pv = builder.aOut('BPM:MINSIG', initial_value=args.min_sig)
-    max_integral = args.max_integral
-
+    FFT_LENGTH = args.samp_freq // 3 # Nyquist + 1
     mfb_calc = MfbCalculator(t_control, max_integral)
 
     async def mod_enable_pv_update(value):
@@ -69,24 +91,47 @@ def main():
     async def dac_set_pv_update(value):
         await panda_manager.set_dac_value(value)
 
-    builder.aOut('DAC:SET', on_update=dac_set_pv_update)
+    dac_set_pv = builder.aOut('DAC:SET', on_update=dac_set_pv_update)
     dac_set_rbv = builder.aIn('DAC:SET_RBV')
+    dac_tweak_pv = builder.aOut('DAC:TWEAK', initial_value=INITIAL_DAC_TWEAK_STEP, PREC=3)    
+
+    def tweak_dac_value_down(value):
+        tweak_step = dac_tweak_pv.get()
+        current_value = dac_set_rbv.get()
+        dac_set_pv.set(current_value - tweak_step)
+        log.debug(f"DAC level {current_value} tweaked down by {tweak_step}")
+
+    def tweak_dac_value_up(value):
+        tweak_step = dac_tweak_pv.get()
+        current_value = dac_set_rbv.get()    
+        dac_set_pv.set(current_value + tweak_step)
+        log.debug(f"DAC level {current_value} tweaked up by {tweak_step}")
+
+
+    builder.aOut('DAC:TDOWN', on_update=tweak_dac_value_down)
+    builder.aOut('DAC:TUP', on_update=tweak_dac_value_up)
+
     bpm_inten_pv = builder.aOut('BPM:INTEN', PREC=3)
     a_sig_pv = builder.aIn('BPM:A', PREC=3)
     b_sig_pv = builder.aIn('BPM:B', PREC=3)
     c_sig_pv = builder.aIn('BPM:C', PREC=3)
     d_sig_pv = builder.aIn('BPM:D', PREC=3)
     sig_pvs = [a_sig_pv, b_sig_pv, c_sig_pv, d_sig_pv]
-    bpm_fft_amp_pv = builder.WaveformIn('BPM:FFT:AMP', length=n_samples)
-    mod_fft_amp_pv = builder.WaveformIn('MOD:FFT:AMP', length=n_samples)
+    bpm_fft_freq_pv = builder.WaveformIn('BPM:FFT:FREQ', length=FFT_LENGTH)
+    bpm_fft_amp_pv = builder.WaveformIn('BPM:FFT:AMP', length=FFT_LENGTH)
+    mod_fft_freq_pv = builder.WaveformIn('MOD:FFT:FREQ', length=FFT_LENGTH)
+    mod_fft_amp_pv = builder.WaveformIn('MOD:FFT:AMP', length=FFT_LENGTH)
     bpm_amp_pv = builder.WaveformIn('BPM:AMP', length=n_samples)
     mod_amp_pv = builder.WaveformIn('MOD:AMP', length=n_samples)
 
+    BPM_FFT_FREQS = np.fft.fftfreq(args.samp_freq, 1/args.samp_freq )[:FFT_LENGTH]
+    MOD_FFT_FREQS = np.fft.fftfreq(args.samp_freq, 1/(args.samp_freq * args.control_freq))[:FFT_LENGTH] # since sample_freq used per portion of control period
+    bpm_fft_freq_pv.set(BPM_FFT_FREQS)
+    mod_fft_freq_pv.set(MOD_FFT_FREQS)
+
     async def control_loop():
         await panda_manager.connect()
-        mod_signal = create_modulation_signal(
-            args.mod_freq, args.mod_amp, args.samp_freq, t_control)
-        await panda_manager.configure(mod_signal, args.samp_freq)
+        await configure_modulation_signal(mfb_freq_pv.get(), mfb_amp_pv.get())
         async for each_bpm_data, mod_data in \
                 panda_manager.collect_mfb_signals(n_samples):
 
@@ -101,8 +146,8 @@ def main():
 
             bpm_inten = mfb_calc.get_bpm_amp()[0] / 2
             bpm_inten_pv.set(bpm_inten)
-            bpm_fft_amp_pv.set(mfb_calc.get_bpm_amp())
-            mod_fft_amp_pv.set(mfb_calc.get_mod_amp())
+            bpm_fft_amp_pv.set(mfb_calc.get_bpm_amp()[:FFT_LENGTH])
+            mod_fft_amp_pv.set(mfb_calc.get_mod_amp()[:FFT_LENGTH])
 
             if not panda_manager.is_modulation_enabled():
                 log.debug('Control loop is disabled')
