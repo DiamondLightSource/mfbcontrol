@@ -53,8 +53,8 @@ class MfbCalculator(object):
     integral = 0
     bpm_fft = None
     mod_fft = None
-    bpm_fft_amp = None
-    mod_fft_amp = None
+    bpm_fft_amp = []
+    mod_fft_amp = []
 
     def __init__(self, control_period, max_integral,):
         self.control_period = control_period
@@ -100,6 +100,6 @@ class MfbCalculator(object):
 
 
 def create_modulation_signal(mod_freq: int, mod_amp: float, samp_freq: int,
-                             duration: float) -> ArrayLike:
+                             duration: float = 1) -> ArrayLike:
     t = np.linspace(0, duration, samp_freq)
     return np.cos(mod_freq * 2 * np.pi * t) * mod_amp

@@ -39,9 +39,21 @@ mfbcontrol-ioc PV-PREFIX panda-host --control-gain -0.3 --min-sig 0.5 --mod-freq
 
 Enable/disable for the control loop.
 
-## `PV-PREFIX:GAIN`
+## `PV-PREFIX:AMP`
 
-Gain in the control loop, note that depending on the total latency of the
+The modulation signal amplitude in Volts.
+
+## `PV-PREFIX:FREQ`
+
+The modulation signal frequency in Hertz.
+
+## `PV-PREFIX:GAIN_I`
+
+Integral gain in the control loop.
+
+## `PV-PREFIX:GAIN_P`
+
+Proportional gain in the control loop, note that depending on the total latency of the
 system, the sign of the gain might need to be changed so that the correction
 happens in the right direction.
 
@@ -61,6 +73,10 @@ BPM intensity (A+B+C+D) waveform.
 
 Waveform containing the amplitude of the FFT of the BPM intensity.
 
+## `PV-PREFIX:BPM:FFT:FREQ`
+
+Waveform cotaining the FFT frequncy scale for BPM:FFT:AMP.
+
 ## `PV-PREFIX:MOD:AMP`
 
 Modulation signal waveform.
@@ -69,6 +85,12 @@ Modulation signal waveform.
 
 Waveform containing the amplitude of the FFT of the modulation signal generated.
 
+
+## `PV-PREFIX:PM:MOD:FFT:FREQ`
+
+Wavefor containing the FFT frequency scale for MOD:FFT:AMP.
+
+
 ## `PV-PREFIX:DAC:SET`
 
 Manual control for the DAC output (in V units).
@@ -76,3 +98,15 @@ Manual control for the DAC output (in V units).
 ## `PV-PREFIX:DAC:SET_RBV`
 
 Readback PV for the DAC output (in V units).
+
+## `PV-PREFIX:DAC_TWEAK`
+
+The tweak value to increment by when tweaking the DAC level up or down.
+
+## `PV-PREFIX:DAC:TDOWN`
+
+Tweak the DAC level down by a DAC_TWEAK. Put a 0 or 1 value opposite to its current value for the record to be processed. 
+
+## `PV-PREFIX:DAC:TUP`
+
+Tweak the DAC level up by a DAC_TWEAK. Put a 0 or 1 value opposite to its current value for the record to be processed. 
