@@ -1,0 +1,6 @@
+DEBUG:mfbcontrol.mfb:Calculation: value = -0.000436, k = 30, fb_k = 60, bpm_phase = -0.563435, mod_phase = 2.809657, phase_diff = 2.910093, gain_p = -0.400000, gain_i = -0.050000, bpm_amp = 0.001128, max_bpm_amp = 0.060679,mod_amp = 0.126429, integral = -0.000295, unlimited_integral=-0.000295 
+DEBUG:mfbcontrol.ioc:Signal = 5.272345, correction = -0.000436 
+DEBUG:mfbcontrol.panda:Setting DAC value to 1139773225 
+DEBUG:mfbcontrol.mfb:Calculation: value = -0.000102, k = 31, fb_k = 61, bpm_phase = -0.884928, mod_phase = -2.758945, phase_diff = 1.874017, gain_p = -0.700000, gain_i = -0.040000, bpm_amp = 0.000275, max_bpm_amp = 0.057690,mod_amp = 0.083372, integral = -0.000157, unlimited_integral=-0.000157 
+DEBUG:mfbcontrol.ioc:Signal = 5.270067, correction = -0.000102 
+DEBUG:mfbcontrol.panda:Setting DAC value to 1139751326 
