@@ -85,7 +85,7 @@ def main():
     async def mod_enable_pv_update(value):
         await panda_manager.set_modulation_enable(+value)
 
-    builder.boolOut('ENABLE', initial_value=True,
+    builder.boolOut('ENABLE', initial_value=False,
                     on_update=mod_enable_pv_update, ZNAM='OFF', ONAM='ON')
 
     async def dac_set_pv_update(value):
