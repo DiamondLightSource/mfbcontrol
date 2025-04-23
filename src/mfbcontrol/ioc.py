@@ -33,6 +33,10 @@ def parse_args() -> argparse.Namespace:
                         help='Minimum signal level to apply correction')
     parser.add_argument('--max-integral', type=float,
                         help='Maximum accumulated integral')
+    parser.add_argument('--max-dac-level', type=float, default=9.9,
+                        help='Maximum dac level')
+    parser.add_argument('--min-dac-level', type=float, default=0.1,
+                        help='Minimum dac level')
     parser.add_argument('--log-level',
                         choices=['debug', 'warn', 'info', 'critical'],
                         default='info', help='Logging level')
@@ -58,6 +62,7 @@ def main():
     max_integral = args.max_integral
     mfb_freq_pv = None
     mfb_amp_pv = None
+    PV_PREFIX = args.pv_prefix
 
     async def configure_modulation_signal(freq, amp):
         mod_signal = create_modulation_signal(
@@ -79,6 +84,7 @@ def main():
     gain_p_pv = builder.aOut('GAIN_P', initial_value=gain_p)
     gain_i_pv = builder.aOut('GAIN_I', initial_value=gain_i)
     min_sig_pv = builder.aOut('BPM:MINSIG', initial_value=args.min_sig)
+    
     FFT_LENGTH = args.samp_freq // 3 # Nyquist + 1
     mfb_calc = MfbCalculator(t_control, max_integral)
 
@@ -90,22 +96,38 @@ def main():
 
     async def dac_set_pv_update(value):
         await panda_manager.set_dac_value(value)
+        log.info(f'{PV_PREFIX}:DAC:SET -> {value}')
 
     dac_set_pv = builder.aOut('DAC:SET', on_update=dac_set_pv_update)
     dac_set_rbv = builder.aIn('DAC:SET_RBV')
     dac_tweak_pv = builder.aOut('DAC:TWEAK', initial_value=INITIAL_DAC_TWEAK_STEP, PREC=3)    
 
+    def set_dac_min_limit(limit_value):
+        panda_manager.set_min_dac_limit(limit_value)
+        log.info(f'{PV_PREFIX}:DAC:MIN -> {limit_value}')
+    
+    def set_dac_max_limit(limit_value):
+        panda_manager.set_max_dac_limit(limit_value)
+        log.info(f'{PV_PREFIX}:DAC:MAX -> {limit_value}')
+
+    dac_min_level_pv = builder.aOut('DAC:MIN', initial_value=args.min_dac_level, PREC=3,
+                                    on_update=set_dac_min_limit)
+    dac_max_level_pv = builder.aOut('DAC:MAX', initial_value=args.max_dac_level, PREC=3,
+                                    on_update=set_dac_max_limit)
+    panda_manager.set_min_dac_limit(dac_min_level_pv.get())
+    panda_manager.set_max_dac_limit(dac_max_level_pv.get())
+    
     def tweak_dac_value_down(value):
         tweak_step = dac_tweak_pv.get()
         current_value = dac_set_rbv.get()
         dac_set_pv.set(current_value - tweak_step)
-        log.debug(f"DAC level {current_value} tweaked down by {tweak_step}")
+        log.info(f"DAC level {current_value} tweaked down by {tweak_step}")
 
     def tweak_dac_value_up(value):
         tweak_step = dac_tweak_pv.get()
         current_value = dac_set_rbv.get()    
         dac_set_pv.set(current_value + tweak_step)
-        log.debug(f"DAC level {current_value} tweaked up by {tweak_step}")
+        log.info(f"DAC level {current_value} tweaked up by {tweak_step}")
 
 
     builder.aOut('DAC:TDOWN', on_update=tweak_dac_value_down)

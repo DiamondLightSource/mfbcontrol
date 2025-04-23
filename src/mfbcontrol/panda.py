@@ -8,6 +8,10 @@ from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Arm, Get, Put, SetState
 from pandablocks.responses import FrameData, ReadyData
 
+from mfbcontrol.util import limit_value
+
+log = logging.getLogger(__name__)
+
 DAC_MAX = 2**31 - 1
 DAC_MIN = -2**31
 EGU_MAX = 10.0
@@ -29,6 +33,8 @@ class MFBPandaManager(object):
         self.dac_value = 0
         self.log = logging.getLogger(__name__)
         self.mod_enabled = False
+        self.dac_limit_min = DAC_MIN
+        self.dac_limit_max = DAC_MAX
 
     async def __aenter__(self):
         await self.connect()
@@ -36,6 +42,12 @@ class MFBPandaManager(object):
 
     async def __aexit__(self, exc_type, exc_value, traceback):
         await self.close()
+
+    def set_min_dac_limit(self, limit:float):
+        self.dac_limit_min = to_dac_units(limit)
+
+    def set_max_dac_limit(self, limit:float):
+        self.dac_limit_max = to_dac_units(limit)
 
     async def connect(self):
         if not self.connected:
@@ -63,15 +75,19 @@ class MFBPandaManager(object):
     async def set_dac_value(self, value):
         cval = int(to_dac_units(value))
         self.dac_value = cval
+        self.dac_value = int(limit_value(self.dac_value, self.dac_limit_min, self.dac_limit_max))
+
         if self.dac_value > DAC_MAX:
             self.dac_value = DAC_MAX
         elif self.dac_value < DAC_MIN:
             self.dac_value = DAC_MIN
 
-        await self.client.send(Put('COUNTER1.SET', cval))
+        await self.client.send(Put('COUNTER1.SET', self.dac_value))
 
     async def adjust_dac(self, diff: float):
         self.dac_value += int(to_dac_units(diff))
+        self.dac_value = int(limit_value(self.dac_value, self.dac_limit_min, self.dac_limit_max))
+
         if self.dac_value > DAC_MAX:
             self.dac_value = DAC_MAX
         elif self.dac_value < DAC_MIN:
