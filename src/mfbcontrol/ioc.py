@@ -90,6 +90,9 @@ def main():
 
     async def mod_enable_pv_update(value):
         await panda_manager.set_modulation_enable(+value)
+        if(not value):
+            log.debug("Disabling modulation")
+            mfb_calc.reset_integral()
 
     builder.boolOut('ENABLE', initial_value=False,
                     on_update=mod_enable_pv_update, ZNAM='OFF', ONAM='ON')

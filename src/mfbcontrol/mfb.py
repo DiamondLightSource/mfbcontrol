@@ -47,6 +47,9 @@ class MfbCalculator(object):
         self.control_period = control_period
         self.max_integral = max_integral
 
+    def reset_integral(self):
+        self.integral = 0
+
     def process_inputs(self, bpm_data: ArrayLike, mod_data: ArrayLike):
         self.bpm_fft = fft.fft(bpm_data)
         self.mod_fft = fft.fft(mod_data)
