@@ -110,3 +110,11 @@ Tweak the DAC level down by a DAC_TWEAK. Put a 0 or 1 value opposite to its curr
 ## `PV-PREFIX:DAC:TUP`
 
 Tweak the DAC level up by a DAC_TWEAK. Put a 0 or 1 value opposite to its current value for the record to be processed. 
+
+# Architecture
+
+![](./architecture.png)
+
+The PID control loop is run in software (a python soft IOC to be precise),
+this obtains the QBPM signals and the modulation signal from the FPGA, then
+it calculates a correction and adjusts the DAC offset value to control the piezo motor position.
