@@ -66,7 +66,7 @@ def main():
 
     async def configure_modulation_signal(freq, amp):
         mod_signal = create_modulation_signal(
-            freq, amp, args.samp_freq)
+            freq, amp, args.samp_freq, t_control)
         await panda_manager.configure(mod_signal, args.samp_freq)
 
     async def set_modulation_freq(freq):

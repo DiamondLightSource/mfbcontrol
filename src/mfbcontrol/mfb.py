@@ -64,11 +64,12 @@ class MfbCalculator(object):
 
     def calculate_correction(self, gain_p: int, gain_i: int):
         # skip DC and beyond Nyquist
-        k = np.argmax(self.mod_fft_amp[1:len(self.mod_fft_amp) // 2]) + 1
-        fb_k = np.argmax(self.bpm_fft_amp[1:len(self.bpm_fft_amp) // 2]) + 1
-        bpm_amp = self.bpm_fft_amp[k]
+        k = np.argmax(self.mod_fft_amp[2:len(self.mod_fft_amp) // 2]) + 2
+        fb_k = np.argmax(self.bpm_fft_amp[2:len(self.bpm_fft_amp) // 2]) + 2
+        expected_fb_k = np.argmax(self.bpm_fft_amp[k - 1:k + 2]) + k - 1
+        bpm_amp = self.bpm_fft_amp[expected_fb_k]
+        bpm_phase = np.angle(self.bpm_fft)[expected_fb_k]
         max_bpm_amp = self.bpm_fft_amp[fb_k]
-        bpm_phase = np.angle(self.bpm_fft)[k]
         mod_amp = self.mod_fft_amp[k]
         mod_phase = np.angle(self.mod_fft)[k]
         phase_diff = normalise_phase(bpm_phase - mod_phase)
@@ -79,11 +80,11 @@ class MfbCalculator(object):
         correction = gain_p * error + gain_i * self.integral
 
         log.debug(
-            'Calculation: value = %f, k = %d, fb_k = %d, '
+            'Calculation: value = %f, k = %d, fb_k = %d, expected_fb_k = %d '
             'bpm_phase = %f, mod_phase = %f, phase_diff = %f, '
             'gain_p = %f, gain_i = %f, bpm_amp = %f, max_bpm_amp = %f,'
             'mod_amp = %f, integral = %f, unlimited_integral=%f',
-            correction, k, fb_k, bpm_phase, mod_phase, phase_diff, gain_p, gain_i,
+            correction, k, fb_k, expected_fb_k, bpm_phase, mod_phase, phase_diff, gain_p, gain_i,
             bpm_amp, max_bpm_amp, mod_amp, self.integral, unlimited_integral)
         
         return CorrectionResult(correction, int(k), self.bpm_fft_amp, self.mod_fft_amp)
